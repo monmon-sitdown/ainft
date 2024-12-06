@@ -1,5 +1,5 @@
 import React from "react";
-import NFTMinter from "./components/NFTMinter"; // 确保路径正确
+import NFTMinter from "./components/NFTMinter";
 
 const App = () => {
   return (

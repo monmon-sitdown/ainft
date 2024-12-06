@@ -3,11 +3,11 @@ import axios from "axios";
 import { ethers } from "ethers";
 import FormData from "form-data";
 
-// 生成并上传图片到IPFS
-const openAiApiKey = process.env.REACT_APP_OPENAI_API_KEY; //必须加REACT_APP才能生效
+// Generate an image and upload it to IPFS
+const openAiApiKey = process.env.REACT_APP_OPENAI_API_KEY; //prefix must be REACT_APP
 const apiKey = process.env.REACT_APP_JWT;
 
-// 将 Base64 数据转换为 Blob
+// Transform Base64 data to Blob
 const base64ToBlob = (base64Data, contentType) => {
   const byteCharacters = atob(base64Data);
   const byteNumbers = new Array(byteCharacters.length);
@@ -18,15 +18,15 @@ const base64ToBlob = (base64Data, contentType) => {
   return new Blob([byteArray], { type: contentType });
 };
 
-// 铸造NFT
+// mint NFT
 const mintNFT = async (ipfsHash, userDescription) => {
   const metadata = {
-    name: `GeneratedNFT-${userDescription.slice(0, 20)}`, // 使用用户输入作为名称
-    description: `An NFT generated from AI based on the description: "${userDescription}"`, // 动态描述
+    name: `GeneratedNFT-${userDescription.slice(0, 20)}`, // User the input content as the name
+    description: `An NFT generated from AI based on the description: "${userDescription}"`, // User the input content as the description
     image: `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
   };
 
-  // 创建JSON文件并上传到IPFS
+  // Create JSON file and upload to IPFS
   const metadataBlob = new Blob([JSON.stringify(metadata)], {
     type: "application/json",
   });
@@ -35,7 +35,7 @@ const mintNFT = async (ipfsHash, userDescription) => {
     "file",
     metadataBlob,
     `metadata-${userDescription.slice(0, 20)}.json`
-  ); // 使用生成的名称
+  ); // Use the generated name above
 
   const ipfsResponse = await axios.post(
     "https://api.pinata.cloud/pinning/pinFileToIPFS",
@@ -54,7 +54,7 @@ const mintNFT = async (ipfsHash, userDescription) => {
   const tokenURI = `https://gateway.pinata.cloud/ipfs/${metadataHash}`;
   console.log(tokenURI);
 
-  // 铸造NFT
+  // mintNFT
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const signer = provider.getSigner();
 
@@ -76,45 +76,45 @@ const mintNFT = async (ipfsHash, userDescription) => {
   return tx;
 };
 
-// NFTMinter组件
+// NFTMinter
 const NFTMinter = () => {
-  const [userDescription, setDescription] = useState(""); // 用户输入的描述
-  const [ipfsHASH, setIpfsHash] = useState(""); // 生成的图片 URL
-  //const [imageURL, setImageURL] = useState(""); // 生成的图片 URL
+  const [userDescription, setDescription] = useState(""); // Description input by users
+  const [ipfsHASH, setIpfsHash] = useState(""); // generated HASH of the image
+  //const [imageURL, setImageURL] = useState(""); // generated image URL
   const [base64Image, setBase64Image] = useState(null);
-  const [loading, setLoading] = useState(false); // 处理生成图片的加载状态
-  const [transactionHash, setTransactionHash] = useState(""); // 存储交易哈希
+  const [loading, setLoading] = useState(false); // Processing the loading status of generated image
+  const [transactionHash, setTransactionHash] = useState(""); // Save the transacation hash
 
   const generateAndUploadImageToIPFS = async (userDescription) => {
     try {
       //console.log(apiKey);
-      // 生成图片
+      // generate the image
       const response = await axios.post(
         "https://api.openai.com/v1/images/generations",
         {
-          prompt: userDescription, // 根据用户输入的描述生成
+          prompt: userDescription, // according the users description
           n: 1,
           size: "256x256",
           response_format: "b64_json",
         },
         {
           headers: {
-            Authorization: `Bearer ${openAiApiKey}`, // OpenAI API密钥
+            Authorization: `Bearer ${openAiApiKey}`, // OpenAI API key
           },
         }
       );
 
       const base64Data = response.data.data[0].b64_json;
-      setBase64Image(base64Data); // 显示生成的图片
+      setBase64Image(base64Data); // show the generated image
 
-      // Step 2: 将 Base64 数据转换为 Blob
+      // Step 2: transform Base64 data to Blob
       const blob = base64ToBlob(base64Data, "image/png");
 
-      // Step 3: 创建 FormData 以便上传到 IPFS
+      // Step 3: Create FormData for uploading to IPFS
       const formData = new FormData();
-      const nftName = `AINFT-${userDescription.slice(0, 20)}`; // 使用用户输入作为名称
-      // 在上传时使用动态生成的文件名
-      formData.append("file", blob, nftName + ".png"); // 使用生成的名称作为文件名
+      const nftName = `AINFT-${userDescription.slice(0, 20)}`; // Use the input by users as the name
+      // When uploading, using the filename dynamically generated
+      formData.append("file", blob, nftName + ".png"); // User the generated name as filename
 
       const pinataResponse = await axios.post(
         "https://api.pinata.cloud/pinning/pinFileToIPFS",
@@ -132,7 +132,7 @@ const NFTMinter = () => {
       console.log("IPFS Hash:", ipfsHash);
 
       return ipfsHash;
-      // 返回图片的IPFS地址
+      // return the IPFS address
       //return `https://gateway.ipfs.io/ipfs/${ipfsHash}`;
       //return "????";
     } catch (error) {
@@ -140,15 +140,15 @@ const NFTMinter = () => {
     }
   };
 
-  // 第一步：生成图片并上传到IPFS
+  // Step one：Generated image and upload it to IPFS
   const handleGenerateImage = async () => {
     setLoading(true);
     try {
-      // 根据描述生成并上传图片到IPFS，返回IPFS URL
+      // According the description, generated a image and upload it to IPFS, return IPFS URL
       const ipfsHash = await generateAndUploadImageToIPFS(userDescription);
       const imageUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`; // IPFS URL
       console.log(imageUrl);
-      //setImageURL(imageUrl); // 保存生成的图片URL
+      //setImageURL(imageUrl); // save image URL
       setIpfsHash(ipfsHash);
     } catch (error) {
       console.error("Error generating image:", error);
@@ -157,14 +157,14 @@ const NFTMinter = () => {
     }
   };
 
-  // 第二步：铸造NFT
+  // Step 2：mint NFT
   const handleMint = async () => {
     setLoading(true);
     try {
-      // 使用图片的IPFS URL铸造NFT
+      // User the ipfs URL of the image to mint NFT
       console.log(ipfsHASH);
-      const tx = await mintNFT(ipfsHASH, userDescription); // mintNFT函数应该接受图片的IPFS URL
-      setTransactionHash(tx.hash); // 保存交易哈希
+      const tx = await mintNFT(ipfsHASH, userDescription); // mintNFT function should receive IPFS url of the image
+      setTransactionHash(tx.hash); // record the transaction hash
     } catch (error) {
       console.error("Error minting NFT:", error);
     } finally {
@@ -174,20 +174,20 @@ const NFTMinter = () => {
 
   return (
     <div>
-      {/* 用户输入描述 */}
+      {/* User input description */}
       <input
         type="text"
         value={userDescription}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Enter a description"
-        disabled={loading || base64Image} // 如果图片已生成，禁用输入框
+        disabled={loading || base64Image} // If an image was generated, ban the text filling
       />
-      {/* 生成图片按钮 */}
+      {/* Button for generating image*/}
       <button onClick={handleGenerateImage} disabled={loading || base64Image}>
         {loading ? "Generating Image..." : "Generate Image"}
       </button>
 
-      {/* 显示生成的图片 */}
+      {/* Show the generated image */}
       {base64Image && (
         <div>
           <img
@@ -196,13 +196,13 @@ const NFTMinter = () => {
             style={{ width: "300px" }}
           />
           <div>
-            {/* 询问用户是否铸造NFT */}
+            {/* Ask user if he/she wants to mint NFT */}
             <p>Do you want to mint this image as an NFT?</p>
             <button onClick={handleMint} disabled={loading}>
               {loading ? "Minting..." : "Yes, Mint NFT"}
             </button>
             <button
-              onClick={() => {}} // 如果选择不mint，则清除图片并重置状态
+              onClick={() => {}} // If they don't mint NFT, delete the image data and reset to default status
               disabled={loading}
             >
               No, Cancel
@@ -211,7 +211,7 @@ const NFTMinter = () => {
         </div>
       )}
 
-      {/* 显示交易哈希 */}
+      {/* Show the transaction hash */}
       {transactionHash && <p>Transaction Hash: {transactionHash}</p>}
     </div>
   );
